@@ -1,8 +1,9 @@
 (()=>{
  const section=document.querySelector('#competitions'),status=document.querySelector('#competition-status');
- let player=null,ready=false,visible=false,started=false,ended=false;
+ let player=null,ready=false,visible=false,started=false,ended=false,playlistActive=false;
+ document.addEventListener("yard-playlist-start",()=>{playlistActive=true;if(ready)player.pauseVideo()});
  const report=message=>{status.dataset.message=message;status.textContent=t(message);status.hidden=false};
- const sync=()=>{if(!ready||!player)return;if(visible&&!document.hidden&&!ended){player.mute();player.playVideo()}else player.pauseVideo()};
+ const sync=()=>{if(!ready||!player)return;if(visible&&!document.hidden&&!ended&&!playlistActive){player.mute();player.playVideo()}else player.pauseVideo()};
  function load(){if(started)return;started=true;
   window.onYouTubeIframeAPIReady=()=>{
    player=new YT.Player('competition-player',{width:'100%',height:'100%',videoId:'6nXQnlqFi2c',playerVars:{start:0,end:30,autoplay:0,controls:1,playsinline:1,rel:0,origin:location.origin},events:{
