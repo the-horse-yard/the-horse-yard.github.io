@@ -2,6 +2,8 @@
  const section=document.querySelector('#competitions'),status=document.querySelector('#competition-status');
  let player=null,ready=false,visible=false,started=false,ended=false,playlistActive=false;
  document.addEventListener("yard-playlist-start",()=>{playlistActive=true;if(ready)player.pauseVideo()});
+ const archive=document.getElementById('competition-archive');
+ archive?.addEventListener('toggle',()=>{if(archive.open){playlistActive=false;document.getElementById('closing-ride')?.pause()}else{visible=false}sync()});
  const report=message=>{status.dataset.message=message;status.textContent=t(message);status.hidden=false};
  const sync=()=>{if(!ready||!player)return;if(visible&&!document.hidden&&!ended&&!playlistActive){player.mute();player.playVideo()}else player.pauseVideo()};
  function load(){if(started)return;started=true;
