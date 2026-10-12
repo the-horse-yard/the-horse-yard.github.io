@@ -1,0 +1,1 @@
+(()=>{document.querySelectorAll('[data-training-file]').forEach(button=>{button.addEventListener('click',()=>{const index=MEDIA.findIndex(item=>item.file===button.dataset.trainingFile);if(index<0)return;openItem(index,button);const video=document.querySelector('#viewer-content video');if(video){video.muted=true;video.play().catch(()=>{})}})})})();
