@@ -65,3 +65,10 @@
  .masthead .site-menu{left:auto;right:6%;top:56px}
  .masthead .site-menu nav{top:52px;right:0;width:min(220px,88vw)}
 }
+
+/* Ride With Us: quiet champagne accent beneath the traditional Mongolian mark. */
+.cover-logo{pointer-events:none;overflow:visible}
+.ride-with-us{pointer-events:auto;position:absolute;top:75%;left:0;white-space:nowrap;display:inline-flex;align-items:center;justify-content:space-between;gap:24px;padding:13px 20px;border:1px solid #c6a77c88;border-radius:30px;background:linear-gradient(135deg,#c5a77c,#8f6f4c);color:#111;font:600 12px/1.2 Arial,sans-serif;letter-spacing:1.1px;box-shadow:0 9px 30px #0006;transition:transform .2s,box-shadow .2s}
+.ride-with-us:hover{transform:translateY(-2px);box-shadow:0 12px 34px #0009}
+.ride-with-us span{font-size:18px;font-weight:400}
+@media(max-width:760px){.ride-with-us{top:103%;left:0;padding:12px 15px;gap:14px;font-size:11px}}
