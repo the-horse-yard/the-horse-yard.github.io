@@ -7,8 +7,35 @@
  function watermark(frame){if(frame.querySelector(':scope > .media-watermark'))return;const logo=document.createElement('img');logo.className='media-watermark';logo.src=brand;logo.alt='';logo.loading='lazy';frame.append(logo)}
  function link(m){const url=new URL(location.pathname,location.origin);url.searchParams.set('moment',m.file);url.hash='gallery';return url.href}
  function socialLink(m,action){return origin+'/social.html?media='+encodeURIComponent(m.file)+(action?'&action='+action:'')}
- function toolbar(m){const bar=document.createElement('div');bar.className='moment-actions';bar.dataset.media=m.file;for(const action of ['like','save','share','download']){const b=document.createElement(['like','share'].includes(action)?'button':'a');b.dataset.action=action;if(b.tagName==='A'){b.href=socialLink(m,action);b.target='_blank';b.rel='noopener'}else if(action==='like'){b.type='button';b.onclick=()=>toggleLike(m.file)}else{b.type='button';b.onclick=async()=>{try{if(navigator.share)await navigator.share({title:m.title,url:link(m)});else{await navigator.clipboard.writeText(link(m));notice(words().copied)}}catch(e){if(e.name!=='AbortError'){const input=document.createElement('input');input.value=link(m);input.readOnly=true;input.setAttribute('aria-label','Share link — copy this address');bar.append(input);input.select();notice('Copy the selected link.')}}}}bar.append(b)}updateBar(bar);return bar}
- function updateBar(bar){const key=bar.dataset.media,w=words(),state={...mine[key],liked:Boolean(likedHere[key])};bar.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action,label=a==='like'?(state?.liked?w.liked:w.like):a==='save'?(state?.saved?w.saved:w.save):w[a];b.textContent=({like:state?.liked?'♥':'♡',save:state?.saved?'◆':'◇',share:'↗',download:'↓'}[a])+' '+label+(a==='like'&&counts[key]?' '+counts[key]:'');b.setAttribute('aria-label',label);if(a==='like'){b.setAttribute('aria-pressed',String(state.liked));b.disabled=pendingLikes.has(key);b.setAttribute('aria-busy',String(pendingLikes.has(key)))}if(a==='download')b.title=lang()?'Потрібен вхід':'Sign in to download'})}
+ const icons={like:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',share:'<path d="M12 16V3m-5 5 5-5 5 5M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>',save:'<path d="M6 3h12v18l-6-4-6 4Z"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'};
+ function actionIcon(action){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.innerHTML=icons[action];return svg}
+ function toolbar(m){
+  const bar=document.createElement('div');bar.className='moment-actions';bar.dataset.media=m.file;
+  const more=document.createElement('details');more.className='moment-more';const summary=document.createElement('summary');summary.append(actionIcon('more'));more.append(summary);
+  const panel=document.createElement('div');panel.className='moment-more-panel';more.append(panel);
+  more.addEventListener('toggle',()=>{summary.setAttribute('aria-expanded',String(more.open));if(more.open)document.querySelectorAll('.moment-more[open]').forEach(other=>{if(other!==more)other.open=false})});
+  for(const action of ['like','share','save','download']){
+   const control=document.createElement(['like','share'].includes(action)?'button':'a');control.dataset.action=action;
+   if(control.tagName==='A'){control.href=socialLink(m,action);control.target='_blank';control.rel='noopener';control.addEventListener('click',()=>{more.open=false})}
+   else if(action==='like'){control.type='button';control.onclick=()=>toggleLike(m.file)}
+   else{control.type='button';control.onclick=async()=>{try{if(navigator.share)await navigator.share({title:m.title,url:link(m)});else{await navigator.clipboard.writeText(link(m));notice(words().copied)}}catch(e){if(e.name!=='AbortError'){let input=bar.querySelector('.share-link-copy');if(!input){input=document.createElement('input');input.className='share-link-copy';input.readOnly=true;input.setAttribute('aria-label','Share link — copy this address');bar.append(input)}input.value=link(m);input.select();notice('Copy the selected link.')}}}};
+   (['save','download'].includes(action)?panel:bar).append(control);
+  }
+  bar.append(more);updateBar(bar);return bar;
+ }
+ function updateBar(bar){
+  const key=bar.dataset.media,w=words(),state={...mine[key],liked:Boolean(likedHere[key])};
+  bar.querySelectorAll('[data-action]').forEach(control=>{
+   const action=control.dataset.action,label=action==='like'?(state.liked?w.liked:w.like):action==='save'?(state.saved?w.saved:w.save):w[action];
+   const text=document.createElement('span');text.className='action-label';text.textContent=label;control.replaceChildren(actionIcon(action),text);
+   control.setAttribute('aria-label',label+(action==='like'&&counts[key]?' · '+counts[key]:''));control.title=label;
+   if(action==='like'){control.setAttribute('aria-pressed',String(state.liked));control.disabled=pendingLikes.has(key);control.setAttribute('aria-busy',String(pendingLikes.has(key)));if(counts[key]){const count=document.createElement('span');count.className='like-count';count.textContent=new Intl.NumberFormat(lang()?'uk':'en',{notation:'compact',maximumFractionDigits:1}).format(counts[key]);control.append(count)}}
+   if(action==='download')control.title=lang()?'Потрібен вхід':'Sign in to download';
+  });
+  const summary=bar.querySelector('.moment-more summary');if(summary){const label=lang()?'Більше дій':'More actions';summary.setAttribute('aria-label',label);summary.title=label;summary.setAttribute('aria-expanded',String(summary.parentElement.open))}
+ }
+ document.addEventListener('click',event=>document.querySelectorAll('.moment-more[open]').forEach(menu=>{if(!menu.contains(event.target))menu.open=false}));
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'){const menu=document.activeElement?.closest('.moment-more[open]');if(menu){event.preventDefault();event.stopPropagation();menu.open=false;menu.querySelector('summary').focus()}else document.querySelectorAll('.moment-more[open]').forEach(m=>m.open=false)}},true);
  function updateLikes(){document.querySelectorAll('.moment-actions').forEach(updateBar)}
  async function toggleLike(key){
   if(pendingLikes.has(key))return;
