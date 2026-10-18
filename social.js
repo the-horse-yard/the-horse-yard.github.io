@@ -5,7 +5,8 @@
  const lang=()=>document.documentElement.lang==='uk',words=()=>lang()?{like:'Подобається',save:'Зберегти',share:'Поділитися',download:'Завантажити',saved:'Збережено',liked:'Подобається',collection:'Мої збережені миті →',copied:'Посилання скопійовано.'}:{like:'Like',save:'Save',share:'Share',download:'Download',saved:'Saved',liked:'Liked',collection:'My saved moments →',copied:'Link copied.'};
  function notice(s){let n=document.querySelector('.social-notice');if(!n){n=document.createElement('p');n.className='social-notice';n.setAttribute('role','status');document.body.append(n)}n.textContent=s;n.hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.hidden=true,6500)}
  function watermark(frame){if(frame.querySelector(':scope > .media-watermark'))return;const logo=document.createElement('img');logo.className='media-watermark';logo.src=brand;logo.alt='';logo.loading='lazy';frame.append(logo)}
- function link(m){const url=new URL(location.pathname,location.origin);url.searchParams.set('moment',m.file);url.hash='gallery';return url.href}
+ const competitionFiles=['films/closing-ride.mp4','films/competition-portrait.mp4','films/competition-silent.mp4'];
+ function link(m){const url=new URL(location.pathname,location.origin);url.searchParams.set('moment',m.file);url.hash=competitionFiles.includes(m.file)?'competitions':m.file.startsWith('community:')?'community-moments':'gallery';return url.href}
  function socialLink(m,action){return origin+'/social.html?media='+encodeURIComponent(m.file)+(action?'&action='+action:'')}
  const icons={like:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',share:'<path d="M12 16V3m-5 5 5-5 5 5M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>',save:'<path d="M6 3h12v18l-6-4-6 4Z"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'};
  function actionIcon(action){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.innerHTML=icons[action];return svg}
@@ -54,10 +55,24 @@
  new MutationObserver(decorate).observe(document.querySelector('#gallery-grid'),{childList:true});new MutationObserver(decorate).observe(document.querySelector('#viewer-content'),{childList:true});decorate();
  const collection=document.createElement('a');collection.className='saved-collection-link';collection.href=origin+'/social.html';collection.textContent=words().collection;document.querySelector('#gallery .filter-bar').after(collection);
  const featured=MEDIA.find(m=>m.kind==='video'&&m.category==='training');if(featured){const area=document.querySelector('.featured-copy');if(area){const bar=toolbar(featured);bar.id='featured-actions';area.append(bar)}const frame=document.querySelector('.featured-image');if(frame){frame.classList.add('branded-media');watermark(frame)}}
- const comp=document.querySelector('#closing-ride');if(comp){const wrap=document.createElement('div');wrap.className='branded-media';comp.replaceWith(wrap);wrap.append(comp);watermark(wrap);const update=()=>{let src=comp.currentSrc||comp.src||comp.querySelector('source')?.src;if(!src)return;const path=new URL(src).pathname;const m={file:path.split('/assets/')[1],title:'The Horse Yard · Competition film',kind:'video'};if(!m.file)return;let bar=document.querySelector('#competition-actions');if(bar)bar.remove();bar=toolbar(m);bar.id='competition-actions';wrap.after(bar)};new MutationObserver(update).observe(comp,{attributes:true,attributeFilter:['src']});update()}
+ const comp=document.querySelector('#closing-ride');if(comp){const wrap=document.createElement('div');wrap.className='branded-media';comp.replaceWith(wrap);wrap.append(comp);watermark(wrap);const update=()=>{let src=comp.getAttribute('src')||comp.querySelector('source')?.src||comp.currentSrc;if(!src)return;const path=new URL(src,location.href).pathname;const m={file:path.split('/assets/')[1],title:'The Horse Yard · Competition film',kind:'video'};if(!m.file)return;let bar=document.querySelector('#competition-actions');if(bar?.dataset.media===m.file)return;if(bar)bar.remove();bar=toolbar(m);bar.id='competition-actions';wrap.after(bar)};new MutationObserver(update).observe(comp,{attributes:true,attributeFilter:['src']});comp.addEventListener('loadedmetadata',update);update()}
  new MutationObserver(()=>{document.querySelectorAll('.moment-actions').forEach(updateBar);collection.textContent=words().collection}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
  async function refresh(){const started=revision;try{const r=await fetch(origin+'/api/social/counts',{credentials:'omit'});if(r.ok){const data=await r.json();if(started===revision&&!pendingLikes.size){counts=Object.fromEntries(data.items.map(x=>[x.media,x.likes]));updateLikes()}}}catch{}if(!external)try{const r=await fetch('/api/social/mine');if(r.ok){mine=Object.fromEntries((await r.json()).items.map(x=>[x.media,x]));document.querySelectorAll('.moment-actions').forEach(updateBar)}}catch{}}
  refresh();window.addEventListener('focus',refresh);
- const target=new URLSearchParams(location.search).get('moment');if(target){const index=MEDIA.findIndex(m=>m.file===target);if(index>=0)openItem(index);else if(target.startsWith('films/')){const names=['films/closing-ride.mp4','films/competition-portrait.mp4','films/competition-silent.mp4'];const track=names.indexOf(target);if(track>=0)document.querySelector('[data-track="'+track+'"]')?.click();document.querySelector('#competitions')?.scrollIntoView();}else if(target.startsWith('community:'))document.querySelector('#community-moments')?.scrollIntoView();}
+ // Correct legacy shares too: their #gallery anchor must not override the film destination.
+ const target=new URLSearchParams(location.search).get('moment');
+ if(target){
+  const track=competitionFiles.indexOf(target),index=MEDIA.findIndex(m=>m.file===target);
+  if(track>=0){
+   const destination=new URL(location.href);destination.hash='competitions';
+   history.replaceState(history.state,'',destination.href);
+   document.querySelector('[data-track="'+track+'"]')?.click();
+   const reveal=()=>document.querySelector('#competitions')?.scrollIntoView({behavior:'instant',block:'start'});
+   reveal();
+   if(document.readyState!=='complete')window.addEventListener('load',reveal,{once:true});
+  }else if(index>=0)openItem(index);
+  else if(target.startsWith('community:'))document.querySelector('#community-moments')?.scrollIntoView();
+ }
+
  window.YardSocial={toolbar,watermark};
 })();
