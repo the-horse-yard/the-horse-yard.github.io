@@ -72,3 +72,9 @@
 .ride-with-us:hover{transform:translateY(-2px);box-shadow:0 12px 34px #0009}
 .ride-with-us span{font-size:18px;font-weight:400}
 @media(max-width:760px){.ride-with-us{top:103%;left:0;padding:12px 15px;gap:14px;font-size:11px}}
+
+/* Keep film attribution below its player on narrow screens. */
+#viewer-content:has(.film-credit){flex-direction:column;gap:12px;padding:12px;overflow:auto}
+#viewer-content:has(.film-credit) video{width:100%;min-height:0;flex:0 1 auto;max-height:calc(100% - 90px)}
+.film-credit{flex:0 0 auto;max-width:100%;font-size:12px;line-height:1.5;color:#aaa;text-align:center;overflow-wrap:anywhere}
+.film-credit a{text-decoration:underline}
